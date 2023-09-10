@@ -12,7 +12,7 @@ const AppNav = () => {
   const { token } = useContext(AuthContext);
   return (
     <NavigationContainer>
-      {token !== null ? <Login /> : <BottomTabNavigator/>}
+      {token == null ? <Login /> : <BottomTabNavigator/>}
     </NavigationContainer>
   );
 };

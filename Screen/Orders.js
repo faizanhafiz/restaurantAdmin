@@ -6,59 +6,82 @@ import {
   Text,
   StatusBar,
   View,
-  Button,
+   
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 
 import { AuthContext } from "../Context/AuthContext";
-import { FAB, Modal, Portal  } from "react-native-paper";
+import { FAB, Modal, Portal  ,ActivityIndicator,MD2Colors, Snackbar} from "react-native-paper";
 import { TextInput } from "react-native";
 
 const Orders = (props) => {
   const { order, getOrderBydate ,showToastedError} = useContext(AuthContext);
   const [visible, setVisible] = useState(false);
+  const [isLoading,setIsLoading] = useState(false)
   const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
   const [dates ,setDate] = useState("");
   const [month ,setMonth] = useState("");
   const [year ,setYear] = useState("");
+    
 
   useEffect(() => {}, [order]);
   const FABComponent = () => (
     <FAB icon="plus" style={styles.fab} onPress={() => showModal()} />
   );
 
-  const handlegetOrderBydate=()=>{
+  const handlegetOrderBydate=async()=>{
     
     if(month.length==0 || dates.length==0||year.length==0)
     {
-      alert("please enter all fields")
+      hideModal();
+      showToastedError("please enter all fields")
+      return
+       
     }
      if(month.length==1 || month.length>2 )
      {
       hideModal();
-      alert("Please enter correct month format")
+      showToastedError("Please enter correct month format")
+      return
      }
      if(dates.length==1 || dates.length>2){
       hideModal();
-      alert("Please enter correct date format")
+      showToastedError("Please enter correct date format")
+      return
      }
 
      if( year.length!=4){
       hideModal();
       showToastedError("Please enter correct year format")
+      return
      }
 
 
      const date = year+"-"+month+"-"+dates;
+     try{
+       setIsLoading(true);
+      hideModal();
+       await getOrderBydate(date);
+       setIsLoading(()=>{
 
-     getOrderBydate(date);
-     hideModal();
+       },5000)
+       
+     }catch(err)
+     {
+      setIsLoading(false);
+      console.log("error inside handlegetOrderBydate ",err);
+     }finally{
+       setIsLoading(false);
+     }
+   
+     
   
   }
 
   const OrderItem = ({ item }) => {
     return (
+      
       <View style={styles.orderContainer}>
         <Text style={styles.userName}>Name : {item.name}</Text>
         <Text style={styles.userName}>orderDate: {item.orderDate}</Text>
@@ -86,104 +109,85 @@ const Orders = (props) => {
 
   return (
     <View style={styles.container}>
-      {order.length == 0 ? <><Portal>
-             <Modal
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+        <ActivityIndicator animating={isLoading} color={MD2Colors.red800} />
+      </View>
+      ) : order.length === 0 ? (
+        <View>
+          <Portal>
+            <Modal
               visible={visible}
               onDismiss={hideModal}
               contentContainerStyle={styles.containerStyle}
-              style={{justifyContent:'center',alignItems:'center'}}
+              style={{ justifyContent: 'center', alignItems: 'center' }}
             >
-              
-            <View style={{alignItems:'center'}}>
-            <Text>Enter Date</Text>
-              <View style={{flexDirection:'row'}}>
-    
-              <View style={{justifyContent:'center',alignItems:'center'}}>
-              <TextInput onChangeText={(text)=>setDate(text)} style={{borderBottomWidth:1 ,width:70,margin:2,borderBottomColor:'#000'}}></TextInput>
-              <Text>Date:</Text>
+              <View style={{ alignItems: 'center' }}>
+                <Text>Enter Date</Text>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setDate(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2, borderBottomColor: '#000' }} />
+                    <Text>Date:</Text>
+                  </View>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setMonth(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2 }} />
+                    <Text>Month:</Text>
+                  </View>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setYear(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2 }} />
+                    <Text>Year:</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.buttonop} onPress={() => { handlegetOrderBydate() }}>
+                  <Text>Get Order</Text>
+                </TouchableOpacity>
               </View>
-              <View style={{justifyContent:'center',alignItems:'center'}}>
-              <TextInput onChangeText={(text)=>setMonth(text)} style={{borderBottomWidth:1 ,width:70,margin:2}}></TextInput>
-              <Text>Month:</Text>
-              </View>
-             
-             <View style={{justifyContent:'center',alignItems:'center'}}>
-             <TextInput onChangeText={(text)=>setYear(text)} style={{borderBottomWidth:1,width:70 ,margin:2}}></TextInput>
-             <Text>Year:</Text>
-             </View>
-             
-
-               
-
-              </View>
-
-              <TouchableOpacity  style={styles.buttonop} onPress={()=>{handlegetOrderBydate()}} >
-                <Text>Get Order</Text>
-                
-                </TouchableOpacity> 
-              
-             
-             
-            </View>
             </Modal>
-            
           </Portal>
-          <FABComponent /> 
-          </>
-      
-      : (
-        <>
+        
+        </View>
+      ) : (
+        <View>
           <FlatList
             data={order}
             renderItem={OrderItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()} // Ensure key is a string
             showsVerticalScrollIndicator={false}
           />
           <Portal>
-             <Modal
+            <Modal
               visible={visible}
               onDismiss={hideModal}
               contentContainerStyle={styles.containerStyle}
-              style={{justifyContent:'center',alignItems:'center'}}
+              style={{ justifyContent: 'center', alignItems: 'center' }}
             >
-              
-            <View style={{alignItems:'center'}}>
-            <Text>Enter Date</Text>
-              <View style={{flexDirection:'row'}}>
-    
-              <View style={{justifyContent:'center',alignItems:'center'}}>
-              <TextInput onChangeText={(text)=>setDate(text)} style={{borderBottomWidth:1 ,width:70,margin:2,borderBottomColor:'#000'}}></TextInput>
-              <Text>Date:</Text>
+              <View style={{ alignItems: 'center' }}>
+                <Text>Enter Date</Text>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setDate(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2, borderBottomColor: '#000' }} />
+                    <Text>Date:</Text>
+                  </View>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setMonth(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2 }} />
+                    <Text>Month:</Text>
+                  </View>
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <TextInput onChangeText={(text) => setYear(text)} style={{ borderBottomWidth: 1, width: 70, margin: 2 }} />
+                    <Text>Year:</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.buttonop} onPress={() => { handlegetOrderBydate() }}>
+                  <Text>Get Order</Text>
+                </TouchableOpacity>
               </View>
-              <View style={{justifyContent:'center',alignItems:'center'}}>
-              <TextInput onChangeText={(text)=>setMonth(text)} style={{borderBottomWidth:1 ,width:70,margin:2}}></TextInput>
-              <Text>Month:</Text>
-              </View>
-             
-             <View style={{justifyContent:'center',alignItems:'center'}}>
-             <TextInput onChangeText={(text)=>setYear(text)} style={{borderBottomWidth:1,width:70 ,margin:2}}></TextInput>
-             <Text>Year:</Text>
-             </View>
-             
-
-               
-
-              </View>
-
-              <TouchableOpacity  style={styles.buttonop} onPress={()=>{handlegetOrderBydate()}} >
-                <Text>Get Order</Text>
-                
-                </TouchableOpacity> 
-              
-             
-             
-            </View>
             </Modal>
-            
           </Portal>
-          <FABComponent />
-        </>
+           
+        </View>
       )}
+        <FABComponent />
+         
     </View>
   );
 };
@@ -191,6 +195,11 @@ const Orders = (props) => {
 export default Orders;
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   buttonop: {
     width: "100%",
     height: 40,

@@ -9,80 +9,70 @@ export const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [token, setToken] = useState(null);
-  const [product,setProduct] = useState([]);
+  const [product, setProduct] = useState([]);
 
   const [order, setOrder] = useState([]);
 
-  const getAllProduct=async()=>
-  {
-
+  const getAllProduct = async () => {
     setIsLoading(true);
-    await fetch(`${BASE_URL}/product/products`,
-    {
-      method:"GET",
-      'Content-Type':"application/json"
+    await fetch(`${BASE_URL}/product/products`, {
+      method: "GET",
+      "Content-Type": "application/json",
     })
-    .then((response)=>{
-      if(response.status==200)
-      {
-        setIsLoading(false)
-        return response.json();
-      }
-      else if(response.status==500)
-      {
-        setIsLoading(false)
-        showToastedError("server error");
-      }
-    })
-    .then((data)=>{
-      
-      setProduct(data);
-       
-    }
-    ).catch(error=>{
-      setIsLoading(false);
-      console.log("error inside getproducts");
-    })
+      .then((response) => {
+        if (response.status == 200) {
+          setIsLoading(false);
+          return response.json();
+        } else if (response.status == 500) {
+          setIsLoading(false);
+          showToastedError("server error");
+        }
+      })
+      .then((data) => {
+        setProduct(data);
+      })
+      .catch((error) => {
+        setIsLoading(false);
+        console.log("error inside getproducts");
+      });
+  };
 
-  }
-
-  const getOrderBydate=async(date)=>{
-
-     if(date==null)
-     {
+  const getOrderBydate = async (date) => {
+    if (date == null) {
       const d = new Date();
-      const month = d.getMonth()+1;
-      const dd = d.getDate();
+      var month = (d.getMonth() + 1).toString();
+      var dd = d.getDate().toString();
       const year = d.getFullYear();
-      date = year+'-'+month+"-"+dd;
-      console.log(date);
-     }
-     console.log("date==>",`${BASE_URL}/order/getOrderbydate?date=2023-09-09`);
-     setIsLoading(true)
-    await fetch(`${BASE_URL}/order/getOrderbydate?date=${date}`)
-    .then(response=>{
-      if(response.status==200)
-      {
-        setIsLoading(false);
-        return response.json();
-
-      }else if(response.status===500)
-      {
-        setIsLoading(false);
-        showToastedError("server error");
-
+      if (dd.length == 1) {
+        dd = 0 + dd;
       }
-    })
-    .then(data=>{
-      setOrder(data);
-      console.log(order);
+      if (month.length == 1) {
+        month = 0 + month;
+      }
+      date = year + "-" + month + "-" + dd;
+      console.log(date);
+    }
+     
 
-    })
-    .catch(err=>{
-      setIsLoading(false);
-      console.log("error inside getOrderBydate ",err);
-    })
-  }
+    try {
+      const response = await Promise.race([
+        fetch(`${BASE_URL}/order/getOrderbydate?date=${date}`),
+        new Promise(
+          (_, reject) =>
+            setTimeout(() => reject(new Error("Request timed out")), 15000) // 30 seconds timeout
+        ),
+      ]);
+
+      if (response.status == 200) {
+        const data = await response.json();
+        setOrder(data);
+      } else if (response.status === 500) {
+        showToastedError("server error");
+      }
+    } catch (err) {
+     alert("time out")
+    }
+  };
 
   const login = async (email, password) => {
     try {
@@ -103,6 +93,7 @@ const AuthProvider = ({ children }) => {
   };
 
   const showToastedError = (message) => {
+   
     Toast.show({
       type: "error",
       text1: message,
@@ -113,6 +104,7 @@ const AuthProvider = ({ children }) => {
   };
 
   const showToastedSuccess = (message) => {
+    alert("inside")
     Toast.show({
       type: "success",
       text1: message,
@@ -135,36 +127,29 @@ const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    AsyncStorage.removeItem("token");
+     
     isLoggedIn();
     getAllProduct();
     getOrderBydate();
   }, []);
 
   useEffect(() => {
-    
-    console.log("Order=========>",order);
+  
   }, [order]);
 
-
-   
-
-
-   return (
+  return (
     <AuthContext.Provider
       value={{
         token,
         login,
         setToken,
         showToastedError,
-        showToastedSuccess,  
-        product ,
-        order   ,
-        getOrderBydate  
+        showToastedSuccess,
+        product,
+        order,
+        getOrderBydate,
       }}
     >
-    
-
       {children}
     </AuthContext.Provider>
   );
